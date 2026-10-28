@@ -1,26 +1,19 @@
 package de.musichin.ktlint.reporter.jsonlines
 
-import org.junit.Assert.assertNotNull
-import org.junit.Test
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
+import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 
 class JsonLinesReporterProviderTest {
-
     @Test
     fun testGet() {
-        val stream = ByteArrayOutputStream()
-        val out = PrintStream(stream)
-        val reporter = JsonLinesReporterProvider().get(out, emptyMap())
-
-        assertNotNull(reporter)
+        assertNotNull(JsonLinesReporterProvider().get(PrintStream(ByteArrayOutputStream()), emptyMap()))
     }
 
     @Test
     fun testId() {
-        val id = JsonLinesReporterProvider().id
-
-        assertEquals("jsonlines", id)
+        assertEquals("jsonlines", JsonLinesReporterProvider().id)
     }
 }
