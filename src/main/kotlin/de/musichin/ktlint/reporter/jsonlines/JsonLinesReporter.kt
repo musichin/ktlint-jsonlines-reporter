@@ -1,55 +1,42 @@
 package de.musichin.ktlint.reporter.jsonlines
 
-import com.pinterest.ktlint.core.LintError
-import com.pinterest.ktlint.core.Reporter
+import com.pinterest.ktlint.cli.reporter.core.api.KtlintCliError
+import com.pinterest.ktlint.cli.reporter.core.api.KtlintCliError.Status.BASELINE_IGNORED
+import com.pinterest.ktlint.cli.reporter.core.api.KtlintCliError.Status.FORMAT_IS_AUTOCORRECTED
+import com.pinterest.ktlint.cli.reporter.core.api.ReporterV2
 import java.io.PrintStream
 
 class JsonLinesReporter(
     private val out: PrintStream,
-) : Reporter {
-    override fun onLintError(file: String, err: LintError, corrected: Boolean) {
-        if (corrected) return
+) : ReporterV2 {
+    override fun onLintError(
+        file: String,
+        ktlintCliError: KtlintCliError,
+    ) {
+        if (ktlintCliError.status == FORMAT_IS_AUTOCORRECTED) return
+        if (ktlintCliError.status == BASELINE_IGNORED) return
 
-        val line = err.line
-        val column = err.col
-        val message = err.detail
-        val rule = err.ruleId
-        out.run {
-            print("{\"file\": \"")
-            file.forEach { char -> print(char.escape()) }
-            print("\", \"line\": ")
-            print(line)
-            print(", \"column\": ")
-            print(column)
-            print(", \"message\": \"")
-            message.forEach { char -> print(char.escape()) }
-            print("\", \"rule\": \"")
-            print(rule)
-            print("\"}\n")
+        val line = ktlintCliError.line
+        val column = ktlintCliError.col
+        val message = escape(ktlintCliError.detail)
+        val rule = escape(ktlintCliError.ruleId)
+        out.print(
+            "{\"file\": \"${escape(file)}\", \"line\": $line, \"column\": $column, \"message\": \"$message\", \"rule\": \"$rule\"}\n",
+        )
+    }
+
+    private fun escape(data: String): String = buildString { data.forEach { char -> append(char.escape()) } }
+
+    private fun Char.escape(): String =
+        when {
+            this == '\"' -> "\\\""
+            this == '\\' -> "\\\\"
+            this == '\b' -> "\\b"
+            this == '\u000C' -> "\\f"
+            this == '\n' -> "\\n"
+            this == '\r' -> "\\r"
+            this == '\t' -> "\\t"
+            this < ' ' -> "\\u%04x".format(code)
+            else -> toString()
         }
-    }
-
-    private fun Char.escape(): String = when (this) {
-        '\"' -> "\\\""
-        '\\' -> "\\\\"
-        '/' -> "\\/"
-        '\b' -> "\\b"
-        '\u000C' -> "\\f"
-        '\n' -> "\\n"
-        '\r' -> "\\r"
-        '\t' -> "\\t"
-        in '\u0000'..'\u001F' -> escapeCode()
-        else -> toString()
-    }
-
-    private fun Char.escapeCode(): String {
-        val hex = code.toString(16)
-        return buildString {
-            append("\\u")
-            repeat(4 - hex.length) {
-                append("0")
-            }
-            append(hex)
-        }
-    }
 }
